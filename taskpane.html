@@ -15,7 +15,7 @@
     
     <img alt="Hello Excel" src="hello-excel.png">
 
-    <div id="AUD:USD">...</div>
+    <pre id="AUD:USD">...</pre>
 </body>
 
 <script type="module">
@@ -32,7 +32,7 @@
             session
                 .addStream(topicPath, diffusion.datatypes.json())
                 .on('value', function(topic, specification, newValue, oldValue) {
-                    const topicValue = JSON.stringify(newValue.get());
+                    const topicValue = JSON.stringify(newValue.get(), null, 2);
                     console.log("Update for " + topic, topicValue);
 
                     document.getElementById('AUD:USD').innerHTML = topicValue;
