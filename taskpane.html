@@ -7,19 +7,40 @@
     <link rel="stylesheet" href="styles.css">
 
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <script src="https://unpkg.com/diffusion@6.10.1/dist/diffusion"></script>
+
 </head>
 <body>
     <h1>👋 Hello Excel</h1>
     
     <img alt="Hello Excel" src="hello-excel.png">
 
-    <p>This does very little right now. Perhaps less than that, even.</p>
+    <div id="AUD:USD">...</div>
 </body>
 
-<script>
+<script type="module">
     Office.onReady((info) => {
-        console.log("Hello Excel is ready, for nothing.")
+        console.log("Hello-Excel is ready.")
+
+        diffusion.connect({
+            host : 'ohost.eu.diffusion.cloud',
+            port: 443
+        }).then(function(session) {
+            const topicPath = "my/fx/AUD:USD";
+            console.log("Connected with session " + session.sessionId);
+            session
+                .addStream(topicPath, diffusion.datatypes.double())
+                .on('value', function(topic, specification, newValue, oldValue) {
+                    console.log("Update for " + topic, newValue);
+
+                    document.getElementById('AUD:USD').innerHTML = newValue;
+                });
+
+            // Subscribe to the topic
+            session.select('session.sessionId');
+        });
     });
+
 
 </script>
 
