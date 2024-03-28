@@ -30,11 +30,12 @@
             const topicPath = "my/fx/AUD:USD";
             console.log("Connected with session " + session.sessionId);
             session
-                .addStream(topicPath, diffusion.datatypes.double())
+                .addStream(topicPath, diffusion.datatypes.json())
                 .on('value', function(topic, specification, newValue, oldValue) {
-                    console.log("Update for " + topic, newValue);
+                    const topicValue = newValue.get()
+                    console.log("Update for " + topic, topicValue);
 
-                    document.getElementById('AUD:USD').innerHTML = newValue;
+                    document.getElementById('AUD:USD').innerHTML = topicValue;
                 });
 
             // Subscribe to the topic
