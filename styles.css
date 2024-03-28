@@ -11,3 +11,6 @@ img {
     box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
   }
   
+  p, h1 {
+    text-align: center
+  }
