@@ -32,7 +32,7 @@
             session
                 .addStream(topicPath, diffusion.datatypes.json())
                 .on('value', function(topic, specification, newValue, oldValue) {
-                    const topicValue = newValue.get()
+                    const topicValue = JSON.stringify(newValue.get());
                     console.log("Update for " + topic, topicValue);
 
                     document.getElementById('AUD:USD').innerHTML = topicValue;
