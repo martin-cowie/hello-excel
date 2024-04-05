@@ -35,6 +35,11 @@
                     const topicValue = JSON.stringify(newValue.get(), null, 2);
                     console.log("Update for " + topic, topicValue);
 
+                    Excel.run(context => {
+                        context.workbook.worksheets.getActiveWorksheet().getRange("A1").values = [[topicValue]]; // plural?
+                        return context.sync();
+                    });
+
                     document.getElementById('AUD:USD').innerHTML = topicValue;
                 });
 
