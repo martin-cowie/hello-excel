@@ -16,18 +16,30 @@
     <img alt="Hello Excel" src="hello-excel.png">
 
     <br />
-    <form id="subscribeForm">
+    <form id="subscribeForm" class="grid-form">
         <label for="path">Path:</label>
         <input type="text" id="path" name="path" value="my/fx/AUD:USD" required>
-        <br />
+
         <label for="cell">Cell:</label>
         <input type="text" id="cell" name="cell" value="A1" required>
-        <br />
+
         <button type="submit">Subscribe</button>
     </form>
+
+    <hr />
+
+    <table class="subscriptions" id="subscriptionsTable">
+        <tr>
+            <th>Path</th>
+            <th>Cell</th>
+            <th></th>
+        </tr>
+    </table>
+
 </body>
 
 <script type="module">
+    import {Subscriptions} from "./subscriptions.js";
 
     const subscribeForm = document.getElementById('subscribeForm');
 
@@ -44,8 +56,11 @@
 
             console.log("Connected with session " + session.sessionId);
 
-            // subscribeTo(session, "my/fx/AUD:USD", "A1");
-            // subscribeTo(session, "my/fx/EUR:CHF", "A2");
+            // Subscriptions controller
+            const subscriptions = new Subscriptions(
+                document.getElementById("subscriptionsTable"), 
+                (topicPath, cell) => unsubscribeFrom(session, topicPath, cell)
+            );
 
             subscribeForm.addEventListener('submit', (ev) => {
                 event.preventDefault(); 
@@ -54,7 +69,7 @@
                 const cell = formData.get('cell');
 
                 console.log(`topicPath=${topicPath}, cell=${cell}`);
-                subscribeTo(session, topicPath, cell);
+                subscribeTo(subscriptions, session, topicPath, cell);
             });
 
             subscribeForm.addEventListener('keypress', function(event) {
@@ -68,7 +83,7 @@
 
     });
 
-    function subscribeTo(session, topicPath, cell) {
+    function subscribeTo(subscriptions, session, topicPath, cell) {
         console.log(`Subscribing ${topicPath} to ${cell}`);
         session
             .addStream(topicPath, diffusion.datatypes.json())
@@ -76,7 +91,7 @@
                 const topicValue = JSON.stringify(newValue.get(), null, 2);
                
                 Excel.run(context => {
-                    context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[topicValue]]; //TODO: why plural values?
+                    context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[topicValue]];
                     return context.sync();
                 });
 
@@ -85,7 +100,20 @@
         // Subscribe to the topic
         session.select(topicPath);
 
+        subscriptions.addSubscription(topicPath, cell);
     }
+
+    function unsubscribeFrom(session, topicPath, cell) {
+        console.log(`Unsubscribe from ${topicPath}, ${cell}`);
+
+        session.unsubscribe(topicPath);
+
+        Excel.run(context => {
+            context.workbook.worksheets.getActiveWorksheet().getRange(cell).clear();
+            return context.sync();
+        });        
+    }
+
 
 
 </script>
