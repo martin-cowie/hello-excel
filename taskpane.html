@@ -58,8 +58,8 @@
 
         // Subscriptions controller
         const subscriptions = new Subscriptions(
-            document.getElementById("subscriptionsTable"), 
-            (topicPath, cell) => unsubscribeFrom(session, topicPath, cell)
+            session,
+            document.getElementById("subscriptionsTable")
         );
 
         subscribeForm.addEventListener('submit', (ev) => {
@@ -69,7 +69,7 @@
             const cell = formData.get('cell');
 
             console.log(`topicPath=${topicPath}, cell=${cell}`);
-            subscribeTo(subscriptions, session, topicPath, cell);
+            subscriptions.subscribeTo(topicPath, cell);
         });
 
         subscribeForm.addEventListener('keypress', function(event) {
@@ -80,38 +80,6 @@
         });
 
     });
-
-    function subscribeTo(subscriptions, session, topicPath, cell) {
-        console.log(`Subscribing ${topicPath} to ${cell}`);
-        session
-            .addStream(topicPath, diffusion.datatypes.json())
-            .on('value', function(topic, specification, newValue, oldValue) {
-                const topicValue = JSON.stringify(newValue.get(), null, 2);
-               
-                Excel.run(context => {
-                    context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[topicValue]];
-                    return context.sync();
-                });
-
-            });
-
-        // Subscribe to the topic
-        session.select(topicPath);
-
-        subscriptions.addSubscription(topicPath, cell);
-    }
-
-    function unsubscribeFrom(session, topicPath, cell) {
-        console.log(`Unsubscribe from ${topicPath}, ${cell}`);
-
-        session.unsubscribe(topicPath);
-
-        Excel.run(context => {
-            context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[]];
-            return context.sync();
-        });        
-    }
-
 
 
 </script>
