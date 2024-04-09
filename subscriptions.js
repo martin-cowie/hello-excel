@@ -17,9 +17,7 @@ export class Subscriptions {
         console.log(`Subscribing ${topicPath} to ${cell}`);
 
         this.#doSubscribe(topicPath, cell);
-
         this.#addSubscriptionUIRow(topicPath, cell);
-
         this.#save(topicPath, cell);
     }
 
@@ -29,7 +27,7 @@ export class Subscriptions {
         this.session.unsubscribe(topicPath);
 
         Excel.run(context => {
-            context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[]];
+            context.workbook.worksheets.getActiveWorksheet().getRange(cell).clear();
             return context.sync();
         });        
     }
@@ -77,13 +75,39 @@ export class Subscriptions {
         unsubTD.onclick = () => {
             row.remove();
             this.#unsubscribeFrom(topicPath, cell);
-            //TODO: remove this subscription from settings
+            this.#unsave(topicPath, cell);
         }
-
     }
 
     // Settings keys
     KEY = "subscriptions";
+
+    /**
+     * Remove a subscription from the workbook settings
+     * @param {*} topicPath 
+     * @param {*} cell 
+     */
+    #unsave(topicPath, cell) {
+        Excel.run(async (context) => {
+            const settings = context.workbook.settings;
+            const setting = settings.getItemOrNullObject(this.KEY);
+            await context.sync();
+    
+            if (!setting.isNullObject) {
+                setting.load("value");
+                await context.sync();
+
+                const idx = setting.value.findIndex((v) => v.topicPath == topicPath && v.cell == cell);
+                if (idx < 0 ) {
+                    return;
+                }
+                setting.value.splice(idx, 1);
+
+                settings.add(this.KEY, setting.value);
+                await context.sync();
+            }
+        });        
+    }
 
     /**
      * Save a new subscription to the workbook settings
@@ -91,7 +115,6 @@ export class Subscriptions {
      * @param {*} cell 
      */
     #save(topicPath, cell) {
-
         Excel.run(async (context) => {
             const newEntry = {
                 tm: new Date().getTime(),
@@ -116,6 +139,8 @@ export class Subscriptions {
             }
         });        
     }
+
+
 
     #load() {
         Excel.run(async (context) =>{
