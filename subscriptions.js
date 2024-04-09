@@ -1,4 +1,7 @@
 export class Subscriptions {
+
+    KEY = "subscriptions";
+
     constructor(tableElem, unsubLambda) {
         if (tableElem == null) {
             throw new Error("tableElem cannot be falsey");
@@ -8,6 +11,8 @@ export class Subscriptions {
         }
         this.tableElem = tableElem;
         this.unsubLambda = unsubLambda;
+
+        // Load subscriptions from settings
     }
 
     addSubscription(topicPath, cell) {
@@ -27,9 +32,12 @@ export class Subscriptions {
             this.unsubLambda(topicPath, cell);
         }
 
-        
+        this.save(topicPath, cell);
+    }
+
+    save(topicPath, cell) {
+
         Excel.run(async (context) => {
-            const KEY = "subscriptions";
             const newEntry = {
                 tm: new Date().getTime(),
                 topicPath: topicPath, 
@@ -37,30 +45,21 @@ export class Subscriptions {
             };
 
             const settings = context.workbook.settings;
-
-            const setting = settings.getItemOrNullObject(KEY); // _sigh_
+            const setting = settings.getItemOrNullObject(this.KEY); // _sigh_
             await context.sync();
     
             if (setting.isNullObject) {
-                console.log(`${KEY} is absent`);
-
-                settings.add(KEY, [newEntry]);
+                settings.add(this.KEY, [newEntry]);
                 await context.sync();
             } else {
-                console.log(`${KEY} is present`);
                 setting.load("value");
                 await context.sync();
 
                 setting.value.push(newEntry);
-                settings.add(KEY, setting.value);
+                settings.add(this.KEY, setting.value);
                 await context.sync();
-
-                console.log(`setting: ${JSON.stringify(setting.value)}`);
             }
-        });
-
-
+        });        
     }
-
     
 }
