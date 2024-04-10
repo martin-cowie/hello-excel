@@ -26,6 +26,10 @@
         <button type="submit">Subscribe</button>
     </form>
 
+    <hr>
+
+    <button id="bindRangeButton">Bind Range</button>
+
     <hr />
 
     <table class="subscriptions" id="subscriptionsTable">
@@ -40,6 +44,7 @@
 
 <script type="module">
     import {Subscriptions} from "./subscriptions.js";
+    import {BindingExperiment} from "./BindingExperiment.js"
 
     const subscribeForm = document.getElementById('subscribeForm');
 
@@ -61,6 +66,11 @@
             session,
             document.getElementById("subscriptionsTable")
         );
+
+        const bindingExperiment = new BindingExperiment(session, "E1:E1", "excel/cell/E1");
+        document.getElementById('bindRangeButton').onclick = async () => {
+            await bindingExperiment.bind();
+        };
 
         subscribeForm.addEventListener('submit', (ev) => {
             event.preventDefault(); 
