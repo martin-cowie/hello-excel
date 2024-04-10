@@ -1,19 +1,23 @@
+import type {Session} from "diffusion";
+declare const diffusion: any; 
+
 export class Subscriptions {
 
-    constructor(session, tableElem) {
+    constructor(
+        private session: Session, 
+        private tableElem: HTMLTableElement
+    ) {
         if (session == null) {
             throw new Error("session cannot be falsey");
         }
         if (tableElem == null) {
             throw new Error("tableElem cannot be falsey");
         }
-        this.session = session;
-        this.tableElem = tableElem;
 
         this.#load()
     }
 
-    subscribeTo(topicPath, cell) {
+    subscribeTo(topicPath: string, cell: string) {
         console.log(`Subscribing ${topicPath} to ${cell}`);
 
         this.#doSubscribe(topicPath, cell);
@@ -21,7 +25,7 @@ export class Subscriptions {
         this.#save(topicPath, cell);
     }
 
-    #unsubscribeFrom(topicPath, cell) {
+    #unsubscribeFrom(topicPath: string, cell: string) {
         console.log(`Unsubscribe from ${topicPath}, ${cell}`);
 
         this.session.unsubscribe(topicPath);
@@ -37,10 +41,10 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #doSubscribe(topicPath, cell) {
+    #doSubscribe(topicPath: string, cell: string) {
         this.session
             .addStream(topicPath, diffusion.datatypes.json())
-            .on('value', function(topic, specification, newValue, oldValue) {
+            .on('value', function(topic: string, specification: any, newValue: any, oldValue: any) {
                 const topicValue = JSON.stringify(newValue.get(), null, 2);
                
                 Excel.run(context => {
@@ -60,7 +64,7 @@ export class Subscriptions {
      * @param {*} cell 
      */
 
-    #addSubscriptionUIRow(topicPath, cell) {
+    #addSubscriptionUIRow(topicPath: string, cell: string) {
         // Create a row, and add it to the table
         const row = this.tableElem.insertRow(-1);
         const pathTD = row.insertCell();
@@ -87,7 +91,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #unsave(topicPath, cell) {
+    #unsave(topicPath: string, cell: string) {
         Excel.run(async (context) => {
             const settings = context.workbook.settings;
             const setting = settings.getItemOrNullObject(this.KEY);
@@ -97,7 +101,7 @@ export class Subscriptions {
                 setting.load("value");
                 await context.sync();
 
-                const idx = setting.value.findIndex((v) => v.topicPath == topicPath && v.cell == cell);
+                const idx = setting.value.findIndex((v: any) => v.topicPath == topicPath && v.cell == cell);
                 if (idx < 0 ) {
                     return;
                 }
@@ -114,7 +118,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #save(topicPath, cell) {
+    #save(topicPath: string, cell: string) {
         Excel.run(async (context) => {
             const newEntry = {
                 tm: new Date().getTime(),
@@ -156,7 +160,7 @@ export class Subscriptions {
 
                 console.log(`Loaded subscriptions: ${subscriptions.length}`);
 
-                subscriptions.forEach(sub => {
+                subscriptions.forEach((sub: any) => {
                     this.#doSubscribe(sub.topicPath, sub.cell);
                     this.#addSubscriptionUIRow(sub.topicPath, sub.cell);
                 });
