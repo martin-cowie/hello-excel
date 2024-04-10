@@ -1,11 +1,20 @@
+import type {Session, UpdateStream} from "diffusion";
+declare const diffusion: any; 
+
 const jsonDataType = diffusion.datatypes.json();
 const TopicType = diffusion.topics.TopicType;
 
 export class BindingExperiment {
-    constructor(session, cell, topicPath) {
-        this.session = session;
-        this.cell = cell;
-        this.topicPath = topicPath;
+    private updateStream: UpdateStream;
+
+    constructor(
+        private session: Session, 
+        private cell: string, 
+        private topicPath :string) 
+    {
+        this.updateStream = this.session.topicUpdate
+            .newUpdateStreamBuilder()
+            .build(this.topicPath, jsonDataType);
     }
 
     async bind() {
@@ -15,11 +24,7 @@ export class BindingExperiment {
         const topicSpec = new diffusion.topics.TopicSpecification(TopicType.JSON);
         await this.session.topics.add(this.topicPath, topicSpec);
 
-        this.updateStream = this.session.topicUpdate
-            .newUpdateStreamBuilder()
-            .build(this.topicPath, jsonDataType);
-
-        this.updateStream.validate();
+        await this.updateStream.validate();
 
         console.log(`Created topic ${this.topicPath}`);
 

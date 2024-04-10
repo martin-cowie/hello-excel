@@ -14,18 +14,18 @@ export class Subscriptions {
             throw new Error("tableElem cannot be falsey");
         }
 
-        this.#load()
+        this.load()
     }
 
     subscribeTo(topicPath: string, cell: string) {
         console.log(`Subscribing ${topicPath} to ${cell}`);
 
-        this.#doSubscribe(topicPath, cell);
-        this.#addSubscriptionUIRow(topicPath, cell);
-        this.#save(topicPath, cell);
+        this.doSubscribe(topicPath, cell);
+        this.addSubscriptionUIRow(topicPath, cell);
+        this.save(topicPath, cell);
     }
 
-    #unsubscribeFrom(topicPath: string, cell: string) {
+    private unsubscribeFrom(topicPath: string, cell: string) {
         console.log(`Unsubscribe from ${topicPath}, ${cell}`);
 
         this.session.unsubscribe(topicPath);
@@ -41,7 +41,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #doSubscribe(topicPath: string, cell: string) {
+    private doSubscribe(topicPath: string, cell: string) {
         this.session
             .addStream(topicPath, diffusion.datatypes.json())
             .on('value', function(topic: string, specification: any, newValue: any, oldValue: any) {
@@ -64,7 +64,7 @@ export class Subscriptions {
      * @param {*} cell 
      */
 
-    #addSubscriptionUIRow(topicPath: string, cell: string) {
+    private addSubscriptionUIRow(topicPath: string, cell: string) {
         // Create a row, and add it to the table
         const row = this.tableElem.insertRow(-1);
         const pathTD = row.insertCell();
@@ -78,8 +78,8 @@ export class Subscriptions {
         unsubTD.classList.add("pointAtMe")
         unsubTD.onclick = () => {
             row.remove();
-            this.#unsubscribeFrom(topicPath, cell);
-            this.#unsave(topicPath, cell);
+            this.unsubscribeFrom(topicPath, cell);
+            this.unsave(topicPath, cell);
         }
     }
 
@@ -91,7 +91,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #unsave(topicPath: string, cell: string) {
+    private unsave(topicPath: string, cell: string) {
         Excel.run(async (context) => {
             const settings = context.workbook.settings;
             const setting = settings.getItemOrNullObject(this.KEY);
@@ -118,7 +118,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    #save(topicPath: string, cell: string) {
+    private save(topicPath: string, cell: string) {
         Excel.run(async (context) => {
             const newEntry = {
                 tm: new Date().getTime(),
@@ -144,9 +144,7 @@ export class Subscriptions {
         });        
     }
 
-
-
-    #load() {
+    private load() {
         Excel.run(async (context) =>{
             const settings = context.workbook.settings;
             const setting = settings.getItemOrNullObject(this.KEY);
@@ -161,8 +159,8 @@ export class Subscriptions {
                 console.log(`Loaded subscriptions: ${subscriptions.length}`);
 
                 subscriptions.forEach((sub: any) => {
-                    this.#doSubscribe(sub.topicPath, sub.cell);
-                    this.#addSubscriptionUIRow(sub.topicPath, sub.cell);
+                    this.doSubscribe(sub.topicPath, sub.cell);
+                    this.addSubscriptionUIRow(sub.topicPath, sub.cell);
                 });
 
             } else {
