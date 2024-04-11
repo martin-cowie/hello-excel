@@ -31,16 +31,17 @@ export class BindingExperiment {
         // Link to full sample: https://raw.githubusercontent.com/OfficeDev/office-js-snippets/prod/samples/excel/30-events/data-changed.yaml
         await Excel.run(async (context) => {
             const range = context.workbook.worksheets.getActiveWorksheet().getRange(this.cell);
-            const binding = context.workbook.bindings.add(range, "Text", "someName0"); //TODO: what value the 3rd argument?
+            const binding = context.workbook.bindings.add(range, "Range", "someName0"); //TODO: what value the 3rd argument?
             binding.onDataChanged.add(async(eventArgs) => {
                 console.log(`Range ${this.cell} onDataChanged, binding.id = ${eventArgs.binding.id}`);
 
-                const textCell = context.workbook.bindings.getItem(eventArgs.binding.id).getText();
+                const range = context.workbook.bindings.getItem(eventArgs.binding.id).getRange();
+                range.load("values");
 
                 await context.sync();
-                console.log("text: " + textCell.value);
+                console.log("values: " + range.values);
 
-                this.updateStream.set(textCell.value)
+                this.updateStream.set(range.values)
             });
 
             await context.sync();
