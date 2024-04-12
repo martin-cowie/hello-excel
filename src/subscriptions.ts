@@ -3,6 +3,8 @@ declare const diffusion: any;
 
 export class Subscriptions {
 
+    private subCounter: number = 0;
+
     constructor(
         private session: Session, 
         private tableElem: HTMLTableElement
@@ -41,14 +43,45 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-    private doSubscribe(topicPath: string, cell: string) {
+    private async doSubscribe(topicPath: string, cell: string) {
+
+        const bindingName = `subscription.${this.subCounter++}`;
+        const binding = await Excel.run(async context => {
+            const range = context.workbook.worksheets.getActiveWorksheet().getRange(cell);
+
+            const binding = context.workbook.bindings.add(range, "Range", bindingName);
+            await context.sync();
+            return binding;
+        });
+        console.log(`Bound ${binding.id}`);
+
         this.session
             .addStream(topicPath, diffusion.datatypes.json())
             .on('value', function(topic: string, specification: any, newValue: any, oldValue: any) {
                 const topicValue = JSON.stringify(newValue.get(), null, 2);
                
-                Excel.run(context => {
-                    context.workbook.worksheets.getActiveWorksheet().getRange(cell).values = [[topicValue]];
+                Excel.run(async context => {
+                    const binding = context.workbook.bindings.getItemOrNullObject(bindingName);
+                    const range = binding.getRange();
+                    range.load(["address", "cellCount", "values"]);
+
+                    try {
+                        await context.sync();
+                    } catch (ex: any) {
+                        if (ex.code === `InvalidBinding` && 
+                            ex.name === "RichApi.Error"
+                        ) {
+                            console.log(`Looks like the binding's gone`, ex);
+                            //TODO: update internal state.
+                            return;    
+                        } else {
+                            throw ex;
+                        }
+                    }
+
+
+                    console.log(`range:`, range.toJSON());
+                    range.values =[[topicValue]];
                     return context.sync();
                 });
 
@@ -142,7 +175,7 @@ export class Subscriptions {
                 await context.sync();
             }
         });        
-    }
+}
 
     private load() {
         Excel.run(async (context) =>{
