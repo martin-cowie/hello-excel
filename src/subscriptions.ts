@@ -1,13 +1,22 @@
 import type {Session} from "diffusion";
+import { Subscription } from "./Subscription.js";
 declare const diffusion: any; 
+
+function removeElement<T>(array: T[], elementToRemove: T): T[] {
+    const index = array.indexOf(elementToRemove); //TODO: consider more than identity comparison
+    if (index > -1) {
+        array.splice(index, 1);
+    }
+    return array;
+}
 
 export class Subscriptions {
 
-    private subCounter: number = 0;
-
     constructor(
         private session: Session, 
-        private tableElem: HTMLTableElement
+        private tableElem: HTMLTableElement,
+        private subscriptions: Array<Subscription>,
+        private nextSubscriptionId: number
     ) {
         if (session == null) {
             throw new Error("session cannot be falsey");
@@ -16,52 +25,76 @@ export class Subscriptions {
             throw new Error("tableElem cannot be falsey");
         }
 
-        this.load()
+        this.subscriptions.forEach(subscription => {
+            this.doSubscribe(subscription);
+            this.addSubscriptionUIRow(subscription);
+        });
+
     }
 
-    subscribeTo(topicPath: string, cell: string) {
+    static async build(session: Session, tableElem: HTMLTableElement): Promise<Subscriptions> {
+        const [subscriptions, nextSubscriptionId] = await Subscriptions.load();
+        const result = new Subscriptions(session, tableElem, subscriptions, nextSubscriptionId);
+
+        return result;
+    }
+
+    /**
+     * Create a new Subscription from a cell to a Diffusion topic path.
+     * @param topicPath 
+     * @param cell 
+     */
+    public subscribeTo(topicPath: string, cell: string) {
         console.log(`Subscribing ${topicPath} to ${cell}`);
 
-        this.doSubscribe(topicPath, cell);
-        this.addSubscriptionUIRow(topicPath, cell);
-        this.save(topicPath, cell);
+        // Create a binding for the cell
+        const bindingId = `subscription.${this.nextSubscriptionId++}`;
+        Excel.run(context => {
+            const range = context.workbook.worksheets.getActiveWorksheet().getRange(cell);
+            const binding = context.workbook.bindings.add(range, "Range", bindingId);
+            return context.sync();
+        });
+
+        const subscription = new Subscription(topicPath, bindingId)
+        console.log(`Created ${subscription.toString()}`);
+        this.subscriptions.push(subscription);
+
+        this.doSubscribe(subscription);
+        this.addSubscriptionUIRow(subscription);
+        Subscriptions.save(this.subscriptions);
     }
 
-    private unsubscribeFrom(topicPath: string, cell: string) {
-        console.log(`Unsubscribe from ${topicPath}, ${cell}`);
-
-        this.session.unsubscribe(topicPath);
+    private unsubscribeFrom(subscription: Subscription) {
+        console.log(`Unsubscribe from ${subscription.toString()}`);
+        removeElement(this.subscriptions, subscription);
+        this.session.unsubscribe(subscription.topicPath);
 
         Excel.run(context => {
-            context.workbook.worksheets.getActiveWorksheet().getRange(cell).clear();
+            context.workbook.bindings.getItem(subscription.bindingId).getRange().clear();
+            try {
+                return context.sync();
+            } catch (ex) {
+                /* do nothing */
+            }
             return context.sync();
         });        
     }
 
     /**
-     * Subscribe to the topic, and wire updates to the cell
-     * @param {*} topicPath 
-     * @param {*} cell 
+     * Subscribe to the topic, and wire updates to the binding
      */
-    private async doSubscribe(topicPath: string, cell: string) {
+    private async doSubscribe(subscription: Subscription) {
 
-        const bindingName = `subscription.${this.subCounter++}`;
-        const binding = await Excel.run(async context => {
-            const range = context.workbook.worksheets.getActiveWorksheet().getRange(cell);
-
-            const binding = context.workbook.bindings.add(range, "Range", bindingName);
-            await context.sync();
-            return binding;
-        });
-        console.log(`Bound ${binding.id}`);
+        const self = this;
 
         this.session
-            .addStream(topicPath, diffusion.datatypes.json())
+            .addStream(subscription.topicPath, diffusion.datatypes.json())
             .on('value', function(topic: string, specification: any, newValue: any, oldValue: any) {
                 const topicValue = JSON.stringify(newValue.get(), null, 2);
-               
+              
+
                 Excel.run(async context => {
-                    const binding = context.workbook.bindings.getItemOrNullObject(bindingName);
+                    const binding = context.workbook.bindings.getItem(subscription.bindingId);
                     const range = binding.getRange();
                     range.load(["address", "cellCount", "values"]);
 
@@ -71,16 +104,14 @@ export class Subscriptions {
                         if (ex.code === `InvalidBinding` && 
                             ex.name === "RichApi.Error"
                         ) {
-                            console.log(`Looks like the binding's gone`, ex);
-                            //TODO: update internal state.
+                            // The binding was removed
+                            self.unsubscribeFrom(subscription);
                             return;    
                         } else {
                             throw ex;
                         }
                     }
 
-
-                    console.log(`range:`, range.toJSON());
                     range.values =[[topicValue]];
                     return context.sync();
                 });
@@ -88,7 +119,7 @@ export class Subscriptions {
             });
 
         // Subscribe to the topic
-        this.session.select(topicPath);
+        this.session.select(subscription.topicPath);
     }
 
     /**
@@ -97,109 +128,76 @@ export class Subscriptions {
      * @param {*} cell 
      */
 
-    private addSubscriptionUIRow(topicPath: string, cell: string) {
+    private addSubscriptionUIRow(subscription: Subscription) {
         // Create a row, and add it to the table
         const row = this.tableElem.insertRow(-1);
         const pathTD = row.insertCell();
-        pathTD.innerHTML = topicPath;
+        pathTD.innerHTML = subscription.topicPath;
 
         const cellTD = row.insertCell();
-        cellTD.innerHTML = cell;
+        cellTD.innerHTML = subscription.bindingId;
 
         const unsubTD = row.insertCell();
         unsubTD.innerHTML = "🔴";
         unsubTD.classList.add("pointAtMe")
         unsubTD.onclick = () => {
             row.remove();
-            this.unsubscribeFrom(topicPath, cell);
-            this.unsave(topicPath, cell);
+            this.unsubscribeFrom(subscription);
+            removeElement(this.subscriptions, subscription);
+            Subscriptions.save(this.subscriptions);
         }
     }
 
     // Settings keys
-    KEY = "subscriptions";
+    private static KEY = "subscriptions";
 
     /**
-     * Remove a subscription from the workbook settings
-     * @param {*} topicPath 
-     * @param {*} cell 
+     * Save subscription to the workbook settings
      */
-    private unsave(topicPath: string, cell: string) {
+    private static save(subscriptions: Array<Subscription>) {
         Excel.run(async (context) => {
             const settings = context.workbook.settings;
-            const setting = settings.getItemOrNullObject(this.KEY);
+            const saveData = subscriptions.map((subscription) => subscription.toJSON());
+            settings.add(this.KEY, saveData);
             await context.sync();
-    
-            if (!setting.isNullObject) {
-                setting.load("value");
-                await context.sync();
-
-                const idx = setting.value.findIndex((v: any) => v.topicPath == topicPath && v.cell == cell);
-                if (idx < 0 ) {
-                    return;
-                }
-                setting.value.splice(idx, 1);
-
-                settings.add(this.KEY, setting.value);
-                await context.sync();
-            }
         });        
     }
 
     /**
-     * Save a new subscription to the workbook settings
-     * @param {*} topicPath 
-     * @param {*} cell 
+     * Load the subscriptions.
+     * @returns a tuple of the subscriptions and next subscription number
      */
-    private save(topicPath: string, cell: string) {
-        Excel.run(async (context) => {
-            const newEntry = {
-                tm: new Date().getTime(),
-                topicPath: topicPath, 
-                cell: cell
-            };
-
-            const settings = context.workbook.settings;
-            const setting = settings.getItemOrNullObject(this.KEY); // _sigh_
-            await context.sync();
-    
-            if (setting.isNullObject) {
-                settings.add(this.KEY, [newEntry]);
-                await context.sync();
-            } else {
-                setting.load("value");
-                await context.sync();
-
-                setting.value.push(newEntry);
-                settings.add(this.KEY, setting.value);
-                await context.sync();
-            }
-        });        
-}
-
-    private load() {
-        Excel.run(async (context) =>{
+    private static async load(): Promise<[Array<Subscription>, number]> {
+        return await Excel.run(async (context) =>{
             const settings = context.workbook.settings;
             const setting = settings.getItemOrNullObject(this.KEY);
             await context.sync();
 
-            if (!setting.isNullObject) {
-                setting.load("value");
-                await context.sync();
-
-                const subscriptions = setting.value;
-
-                console.log(`Loaded subscriptions: ${subscriptions.length}`);
-
-                subscriptions.forEach((sub: any) => {
-                    this.doSubscribe(sub.topicPath, sub.cell);
-                    this.addSubscriptionUIRow(sub.topicPath, sub.cell);
-                });
-
-            } else {
-                console.log(`Loaded no subscriptions`);
-
+            if (setting.isNullObject) {
+                console.log(`Found no subscriptions`);
+                return [[], 0];
             }
+
+            setting.load("value");
+            await context.sync();
+
+            const subscriptions:[Subscription] = setting.value.map((sub: any) => 
+                Subscription.from(sub)
+            );
+            console.log(`Loaded ${subscriptions.map(s => s.toString()).join(", ")}`);
+
+            // TODO: validate bindings
+
+            // Find the next subscription number
+            const nextSubNumber = 1 + subscriptions.map(sub => {
+                const parts = sub.bindingId.split('.');
+                return parseInt(parts[parts.length - 1], 10);
+            })
+            .reduce((max: number, num: number) => {
+                return isNaN(num) ? max : Math.max(max, num);
+            }, 0);
+    
+            return [subscriptions, nextSubNumber];
         });
     }
     

@@ -1,5 +1,5 @@
-import {Subscriptions} from "./subscriptions.js";
-import {BindingExperiment} from "./BindingExperiment.js"
+import {Subscriptions} from "./Subscriptions.js";
+import {BindingExperiment} from "./BindingExperiment.js" //TODO: should I not omit the suffix?
 import type {Session} from "diffusion";
 declare const diffusion: any; 
 
@@ -19,7 +19,7 @@ Office.onReady( async (info) => {
     console.log("Connected with session " + session.sessionId);
 
     // Subscriptions controller
-    const subscriptions = new Subscriptions(
+    const subscriptions = await Subscriptions.build(
         session,
         document.getElementById("subscriptionsTable") as HTMLTableElement
     );
