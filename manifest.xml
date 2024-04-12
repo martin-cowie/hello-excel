@@ -15,21 +15,43 @@
   <Hosts>
     <Host Name="Workbook"/>
   </Hosts>
+  <Requirements>
+    <Sets DefaultMinVersion="1.1">
+      <Set Name="SharedRuntime" MinVersion="1.1"/>
+    </Sets>
+  </Requirements>
   <DefaultSettings>
     <SourceLocation DefaultValue="https://martin-cowie.github.io/hello-excel/taskpane.html"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
-
     <Hosts>
       <Host xsi:type="Workbook">
+        <Runtimes>
+          <Runtime resid="Taskpane.Url" lifetime="long"/>
+        </Runtimes>
+        <AllFormFactors>
+          <ExtensionPoint xsi:type="CustomFunctions">
+            <Script>
+              <SourceLocation resid="Functions.Script.Url"/>
+            </Script>
+            <Page>
+              <SourceLocation resid="Taskpane.Url"/>
+            </Page>
+            <Metadata>
+              <SourceLocation resid="Functions.Metadata.Url"/>
+            </Metadata>
+            <Namespace resid="Functions.Namespace"/>
+          </ExtensionPoint>
+        </AllFormFactors>
+
         <DesktopFormFactor>
           <GetStarted>
             <Title resid="GetStarted.Title"/>
             <Description resid="GetStarted.Description"/>
             <LearnMoreUrl resid="GetStarted.LearnMoreUrl"/>
           </GetStarted>
-
+          <FunctionFile resid="Taskpane.Url"/>
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <OfficeTab id="TabHome">
               <Group id="CommandsGroup">
@@ -59,6 +81,7 @@
             </OfficeTab>
           </ExtensionPoint>
         </DesktopFormFactor>
+
       </Host>
     </Hosts>
     <Resources>
@@ -70,12 +93,15 @@
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://diffusiondata.com"/>
         <bt:Url id="Taskpane.Url" DefaultValue="https://martin-cowie.github.io/hello-excel/taskpane.html"/>
+        <bt:Url id="Functions.Script.Url" DefaultValue="https://martin-cowie.github.io/hello-excel/dist/functions.js"/>
+        <bt:Url id="Functions.Metadata.Url" DefaultValue="https://martin-cowie.github.io/hello-excel/dist/functions.json"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with the Hello Excell add-in!"/>
         <bt:String id="CommandsGroup.Label" DefaultValue="DiffusionData Add-in"/>
         <bt:String id="TaskpaneButton.Label" DefaultValue="Hello Excel"/>
         <bt:String id="TaskpaneButton.SupertipTitle" DefaultValue="Hello Excel"/>
+        <bt:String id="Functions.Namespace" DefaultValue="DIFFUSION"/>
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="GetStarted.Description" DefaultValue="Hello Excel loaded succesfully. Go to the HOME tab and click the 'Hello Excel' button to get started."/>

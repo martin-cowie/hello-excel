@@ -3,10 +3,12 @@
   "version": "0.0.1",
   "description": "Hello Excel!",
   "scripts": {
-    "dev-server": "http-server -S -C $HOME/.office-addin-dev-certs/localhost.crt -K $HOME/.office-addin-dev-certs/localhost.key --cors . -p 3000",
+    "secure-dev-server": "http-server -S -C $HOME/.office-addin-dev-certs/localhost.crt -K $HOME/.office-addin-dev-certs/localhost.key --cors . -p 3011",
+    "dev-server": "http-server --cors . -p 3011",
     "start": "office-addin-debugging start manifest-localhost.xml",
     "start:desktop": "office-addin-debugging start manifest-localhost.xml desktop",
-    "start:web": "office-addin-debugging start manifest-localhost.xml web"
+    "start:web": "office-addin-debugging start manifest-localhost.xml web",
+    "stop": "office-addin-debugging stop manifest-localhost.xml"
   },
   "author": "DiffusionData",
   "dependencies": {

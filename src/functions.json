@@ -1,0 +1,14 @@
+{
+    "allowCustomDataForDataTypeAny": true,
+    "functions": [
+        {
+            "description": "Return the meaning of life.",
+            "id": "LIFE",
+            "name": "LIFE",
+            "parameters": [],
+            "result": {
+                "type": "number"
+            }
+        }
+    ]
+}
