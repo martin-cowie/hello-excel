@@ -6,6 +6,15 @@ declare const diffusion: any;
 const subscribeForm = document.getElementById('subscribeForm') as HTMLFormElement;
 
 Office.onReady( async (info) => {
+
+    // Load immediately - TODO: make configurable, as per best practices.
+    {
+        const value = Office.StartupBehavior.load;
+        console.log(`calling Office.addin.setStartupBehavior(${value})`);
+        await Office.addin.setStartupBehavior(value);
+        console.log(`called Office.addin.setStartupBehavior(${value})`);
+    }
+
     console.log("Hello-Excel is ready.")
 
     const session = await diffusion.connect({
@@ -45,5 +54,7 @@ Office.onReady( async (info) => {
             this.submit(); 
         }
     });
+
+
 
 });
