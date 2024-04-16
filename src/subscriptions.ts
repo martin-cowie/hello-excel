@@ -26,8 +26,8 @@ export class Subscriptions {
         }
 
         this.subscriptions.forEach(subscription => {
-            this.doSubscribe(subscription);
-            this.addSubscriptionUIRow(subscription);
+            const row = this.addSubscriptionUIRow(subscription);
+            this.doSubscribe(subscription, row);
         });
 
     }
@@ -59,32 +59,38 @@ export class Subscriptions {
         console.log(`Created ${subscription.toString()}`);
         this.subscriptions.push(subscription);
 
-        this.doSubscribe(subscription);
-        this.addSubscriptionUIRow(subscription);
+        const row = this.addSubscriptionUIRow(subscription);
+        this.doSubscribe(subscription, row);
         Subscriptions.save(this.subscriptions);
     }
 
-    private unsubscribeFrom(subscription: Subscription) {
+    /**
+     * Remove the subscription, update Add-in state and optionally clear the affected cell(s).
+     * @param subscription 
+     * @param updateWorkbook if true the affected cells are cleared
+     */
+    private unsubscribeFrom(subscription: Subscription, updateWorkbook: boolean = true) {
         console.log(`Unsubscribe from ${subscription.toString()}`);
         removeElement(this.subscriptions, subscription);
         this.session.unsubscribe(subscription.topicPath);
 
-        Excel.run(context => {
-            context.workbook.bindings.getItem(subscription.bindingId).getRange().clear();
-            try {
+        if (updateWorkbook) {
+            Excel.run(context => {
+                context.workbook.bindings.getItem(subscription.bindingId).getRange().clear();
+                try {
+                    return context.sync();
+                } catch (ex) {
+                    /* do nothing */
+                }
                 return context.sync();
-            } catch (ex) {
-                /* do nothing */
-            }
-            return context.sync();
-        });        
+            });        
+        }
     }
 
     /**
      * Subscribe to the topic, and wire updates to the binding
      */
-    private async doSubscribe(subscription: Subscription) {
-
+    private async doSubscribe(subscription: Subscription, row: HTMLTableRowElement) {
         const self = this;
 
         this.session
@@ -101,11 +107,14 @@ export class Subscriptions {
                     try {
                         await context.sync();
                     } catch (ex: any) {
+                        console.log(`Caught exception updating ${subscription.toString()}`);
                         if (ex.code === `InvalidBinding` && 
                             ex.name === "RichApi.Error"
                         ) {
                             // The binding was removed
-                            self.unsubscribeFrom(subscription);
+                            row.remove()
+                            self.unsubscribeFrom(subscription, false);
+                            Subscriptions.save(self.subscriptions);
                             return;    
                         } else {
                             throw ex;
@@ -127,8 +136,7 @@ export class Subscriptions {
      * @param {*} topicPath 
      * @param {*} cell 
      */
-
-    private addSubscriptionUIRow(subscription: Subscription) {
+    private addSubscriptionUIRow(subscription: Subscription): HTMLTableRowElement {
         // Create a row, and add it to the table
         const row = this.tableElem.insertRow(-1);
         const pathTD = row.insertCell();
@@ -143,9 +151,9 @@ export class Subscriptions {
         unsubTD.onclick = () => {
             row.remove();
             this.unsubscribeFrom(subscription);
-            removeElement(this.subscriptions, subscription);
             Subscriptions.save(this.subscriptions);
         }
+        return row;
     }
 
     // Settings keys
