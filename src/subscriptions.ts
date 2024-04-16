@@ -189,10 +189,12 @@ export class Subscriptions {
             setting.load("value");
             await context.sync();
 
-            const subscriptions:[Subscription] = setting.value.map((sub: any) => 
-                Subscription.from(sub)
-            );
+            const subscriptions:[Subscription] = setting.value
+                .map((sub: any) => Subscription.from(sub))
+                .filter((sub: Subscription) => sub.validateBinding());
+
             console.log(`Loaded ${subscriptions.map(s => s.toString()).join(", ")}`);
+            
 
             // TODO: validate bindings
 
