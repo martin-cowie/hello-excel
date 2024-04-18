@@ -15,6 +15,8 @@ Office.onReady( async (info) => {
         console.log(`called Office.addin.setStartupBehavior(${value})`);
     }
 
+    configureDropTarget(document.getElementById('path') as HTMLInputElement);
+
     console.log("Hello-Excel is ready.")
 
     const session = await diffusion.connect({
@@ -55,6 +57,31 @@ Office.onReady( async (info) => {
         }
     });
 
-
-
 });
+
+function configureDropTarget(inputElement: HTMLInputElement) {
+
+    inputElement.ondrop = (ev) => {
+        ev.preventDefault();
+
+        if (ev.dataTransfer) {
+            const items = Array.from(ev.dataTransfer.items);
+            items.forEach(item => {
+                if (item.kind == 'string' && item.type == 'text/uri-list') {
+                    item.getAsString(str => {
+                        const list = parseUriList(str);
+                        const url = list.find(uri => uri.hash.startsWith("#/"));
+                        if (url) {
+                            inputElement.value = url.hash.substring(2);
+                        }
+                    });
+                }
+            });
+        }
+    }
+
+}
+
+function parseUriList(uriListStr: string) {
+    return uriListStr.split('\n').filter(s => !s.startsWith('#')).map(s => new URL(s));
+}
