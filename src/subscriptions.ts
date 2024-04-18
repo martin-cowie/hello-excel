@@ -2,14 +2,6 @@ import type {Session} from "diffusion";
 import { Subscription } from "./Subscription.js";
 declare const diffusion: any; 
 
-function removeElement<T>(array: T[], elementToRemove: T): T[] {
-    const index = array.indexOf(elementToRemove); //TODO: consider more than identity comparison
-    if (index > -1) {
-        array.splice(index, 1);
-    }
-    return array;
-}
-
 export class Subscriptions {
 
     constructor(
@@ -211,4 +203,12 @@ export class Subscriptions {
         });
     }
     
+}
+
+function removeElement<T>(array: T[], elementToRemove: T): T[] {
+    const index = array.indexOf(elementToRemove); //TODO: consider more than identity comparison
+    if (index > -1) {
+        array.splice(index, 1);
+    }
+    return array;
 }
