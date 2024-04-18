@@ -61,27 +61,38 @@ Office.onReady( async (info) => {
 
 function configureDropTarget(inputElement: HTMLInputElement) {
 
+    const BROWSER_PREFIX = "#/topics/browser/";
     inputElement.ondrop = (ev) => {
         ev.preventDefault();
 
-        if (ev.dataTransfer) {
-            const items = Array.from(ev.dataTransfer.items);
-            items.forEach(item => {
-                if (item.kind == 'string' && item.type == 'text/uri-list') {
-                    item.getAsString(str => {
-                        const list = parseUriList(str);
-                        const url = list.find(uri => uri.hash.startsWith("#/"));
-                        if (url) {
-                            inputElement.value = url.hash.substring(2);
-                        }
-                    });
-                }
-            });
+        if (!ev.dataTransfer) {
+            return;
         }
+        const items = Array.from(ev.dataTransfer.items);
+        const uriListItem = items.find(item => item.kind == 'string' && item.type == 'text/uri-list')
+
+        if (!uriListItem) {
+            return;
+        }
+
+        uriListItem.getAsString(str => {
+            const list = parseUriList(str);
+            const url = list.find(uri => uri.protocol.startsWith('http') && uri.hash.startsWith(BROWSER_PREFIX));
+            if (url) {
+                inputElement.value = url.hash.substring(BROWSER_PREFIX.length);
+            }
+        });
+
     }
 
 }
 
-function parseUriList(uriListStr: string) {
+/**
+ * Parse URI-list content into a list of URI
+ * see https://www.iana.org/assignments/media-types/text/uri-list
+ * @param uriListStr 
+ * @returns 
+ */
+function parseUriList(uriListStr: string): URL[] {
     return uriListStr.split('\n').filter(s => !s.startsWith('#')).map(s => new URL(s));
 }
