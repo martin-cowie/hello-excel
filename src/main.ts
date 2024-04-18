@@ -16,6 +16,7 @@ Office.onReady( async (info) => {
     }
 
     configureDropTarget(document.getElementById('path') as HTMLInputElement);
+    configureSelectionListener(document.getElementById('cell') as HTMLInputElement);
 
     console.log("Hello-Excel is ready.")
 
@@ -85,6 +86,18 @@ function configureDropTarget(inputElement: HTMLInputElement) {
 
     }
 
+}
+
+function configureSelectionListener(inputElement: HTMLInputElement) {
+    Excel.run((context) => {
+        const worksheet = context.workbook.worksheets.getActiveWorksheet(); //TODO: doesn't handle >1 sheet
+        worksheet.onSelectionChanged.add(async(ev) => {
+            inputElement.value = ev.address;
+        });
+
+        return context.sync();
+
+    });
 }
 
 /**
