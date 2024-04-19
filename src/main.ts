@@ -1,5 +1,6 @@
 import {Subscriptions} from "./Subscriptions.js";
 import {BindingExperiment} from "./BindingExperiment.js" //TODO: should I not omit the suffix?
+import {RangeExpression} from "./RangeExpression.js";
 import type {Session} from "diffusion";
 declare const diffusion: any; 
 
@@ -92,7 +93,7 @@ function configureSelectionListener(inputElement: HTMLInputElement) {
     Excel.run((context) => {
         const worksheet = context.workbook.worksheets.getActiveWorksheet(); //TODO: doesn't handle >1 sheet
         worksheet.onSelectionChanged.add(async(ev) => {
-            inputElement.value = ev.address;
+            inputElement.value = RangeExpression.parse(ev.address).start;
         });
 
         return context.sync();
