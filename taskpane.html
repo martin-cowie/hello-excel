@@ -17,20 +17,21 @@
 
     <br />
     <form id="subscribeForm" class="grid-form">
-        <label for="path">Path:</label>
-        <input type="text" id="path" name="path" value="my/fx/AUD:USD" required>
+        <label for="path">Topic path:</label>
+        <input id="path" type="text" name="path" title="A topic path selector" required/>
+
+        <label for="topic-type">Topic type:</label>
+        <output id="topic-type" type="text"  name="topic-type" value="" for="path"></output>
+
+        <label for="translation-function-menu">Translation:</label>
+        <select id="translation-function-menu" name="translation" disabled required title="Translate topic values into rectangular cell data"></select>
 
         <label for="cell">Cell:</label>
-        <input type="text" id="cell" name="cell" value="A1" required>
+        <input id="cell" type="text" name="cell" value="" title="Your Excel cell coordinate"/>
 
-        <button type="submit">Subscribe</button>
+
+        <button type="submit" id="beginBindProcessButton" title="Subscribe an Excel cell to a topic">Subscribe</button>
     </form>
-
-    <hr>
-
-    <button id="bindRangeButton">Bind Range</button>
-
-    <hr />
 
     <table class="subscriptions" id="subscriptionsTable">
         <tr>

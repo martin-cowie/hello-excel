@@ -1,4 +1,4 @@
-import type {Session} from "diffusion";
+import {TopicType, type Session} from "diffusion";
 import { Subscription } from "./Subscription.js";
 declare const diffusion: any; 
 
@@ -7,15 +7,17 @@ export class Subscriptions {
     constructor(
         private session: Session, 
         private tableElem: HTMLTableElement,
+        private pathInput: HTMLInputElement,
+        private typeInput: HTMLOutputElement,
+        private translationFunctionMenu: HTMLSelectElement,
         private subscriptions: Array<Subscription>,
         private nextSubscriptionId: number
     ) {
-        if (session == null) {
-            throw new Error("session cannot be falsey");
-        }
-        if (tableElem == null) {
-            throw new Error("tableElem cannot be falsey");
-        }
+        requireNonFalsey(session, "session");
+        requireNonFalsey(tableElem, "tableElem");
+        requireNonFalsey(pathInput, "pathInput");
+        requireNonFalsey(typeInput, "typeInput");
+        requireNonFalsey(translationFunctionMenu, "translationFunctionMenu");
 
         this.subscriptions.forEach(subscription => {
             const row = this.addSubscriptionUIRow(subscription);
@@ -24,9 +26,14 @@ export class Subscriptions {
 
     }
 
-    static async build(session: Session, tableElem: HTMLTableElement): Promise<Subscriptions> {
+    static async build(session: Session, 
+        tableElem: HTMLTableElement, 
+        pathInput: HTMLInputElement, 
+        typeInput: HTMLOutputElement,
+        translationFunctionMenu: HTMLSelectElement
+    ): Promise<Subscriptions> {
         const [subscriptions, nextSubscriptionId] = await Subscriptions.load();
-        const result = new Subscriptions(session, tableElem, subscriptions, nextSubscriptionId);
+        const result = new Subscriptions(session, tableElem, pathInput, typeInput, translationFunctionMenu, subscriptions, nextSubscriptionId);
 
         return result;
     }
@@ -34,9 +41,11 @@ export class Subscriptions {
     /**
      * Create a new Subscription from a cell to a Diffusion topic path.
      * @param topicPath 
+     * @param topicType 
+     * @param translation
      * @param cell 
      */
-    public subscribeTo(topicPath: string, cell: string) {
+    public subscribeTo(topicPath: string, topicType: string, translation: string, cell: string) {
         console.log(`Subscribing ${topicPath} to ${cell}`);
 
         // Create a binding for the cell
@@ -47,7 +56,7 @@ export class Subscriptions {
             return context.sync();
         });
 
-        const subscription = new Subscription(topicPath, bindingId)
+        const subscription = new Subscription(topicPath, topicType, translation, bindingId)
         console.log(`Created ${subscription.toString()}`);
         this.subscriptions.push(subscription);
 
@@ -55,6 +64,58 @@ export class Subscriptions {
         this.doSubscribe(subscription, row);
         Subscriptions.save(this.subscriptions);
     }
+
+    /**
+     * @throws Error if the path is not a Path selector
+     */
+    public async validatePath() {
+        console.debug("validatePath");
+        // Check the selector is a path selector - 
+        // TODO: feedback parsing exception to the UI
+        const selector = diffusion.selectors.parse(this.pathInput.value);
+        if (selector.type != diffusion.Type.PATH) {
+            throw new Error('Can currently handle only Path selector')
+        }
+
+        // Fetch the topic, assert it's there. 
+        const fetchResult = await this.session.fetchRequest()
+            .withValues(diffusion.datatypes.any())
+            .fetch(selector);
+
+        console.debug(`Fetched ${fetchResult.size()} topics`);
+        if (fetchResult.isEmpty()) {
+            throw new Error(`Selector ${selector.toString} matches no topics`);
+        }
+
+        // Gather the type - display that in the form
+        const firstTopic = fetchResult.results()[0];
+        const topicTypeName = getEnumKeyByEnumValue(diffusion.topics.TopicType, firstTopic.type());
+        if (typeof topicTypeName === "string") {
+            this.typeInput.value = "" + topicTypeName;            
+        }
+        
+        // Consider the range of applicable translation functions
+        if (firstTopic.type() === diffusion.topics.TopicType.JSON) {
+            this.translationFunctionMenu.innerHTML = "";
+            const jsonTranslations = [
+                {text: "Identity", value: "identity"}, // TODO: needs proper structuring
+                {text: "As row", value: "as-row"},
+                {text: "As column", value: "as-column"}
+            ];
+            jsonTranslations.forEach(item => {
+                const elem = document.createElement('option');
+                elem.value = item.value;
+                elem.textContent = item.text;
+                this.translationFunctionMenu.add(elem);
+            });
+            this.translationFunctionMenu.disabled = false;
+        }
+    }
+
+    public validateForm(): void {
+        console.log('validateForm');
+    }
+
 
     /**
      * Remove the subscription, update Add-in state and optionally clear the affected cell(s).
@@ -83,41 +144,9 @@ export class Subscriptions {
      * Subscribe to the topic, and wire updates to the binding
      */
     private async doSubscribe(subscription: Subscription, row: HTMLTableRowElement) {
-        const self = this;
-
         this.session
             .addStream(subscription.topicPath, diffusion.datatypes.json())
-            .on('value', function(topic: string, specification: any, newValue: any, oldValue: any) {
-                const topicValue = JSON.stringify(newValue.get(), null, 2);
-              
-
-                Excel.run(async context => {
-                    const binding = context.workbook.bindings.getItem(subscription.bindingId);
-                    const range = binding.getRange();
-                    range.load(["address", "cellCount", "values"]);
-
-                    try {
-                        await context.sync();
-                    } catch (ex: any) {
-                        console.log(`Caught exception updating ${subscription.toString()}`);
-                        if (ex.code === `InvalidBinding` && 
-                            ex.name === "RichApi.Error"
-                        ) {
-                            // The binding was removed
-                            row.remove()
-                            self.unsubscribeFrom(subscription, false);
-                            Subscriptions.save(self.subscriptions);
-                            return;    
-                        } else {
-                            throw ex;
-                        }
-                    }
-
-                    range.values =[[topicValue]];
-                    return context.sync();
-                });
-
-            });
+            .on('value', subscription.onValueHandler.bind(subscription))
 
         // Subscribe to the topic
         this.session.select(subscription.topicPath);
@@ -211,4 +240,22 @@ function removeElement<T>(array: T[], elementToRemove: T): T[] {
         array.splice(index, 1);
     }
     return array;
+}
+
+/**
+ * Maps an enum invariant to it's key
+ * @param myEnum 
+ * @param enumValue 
+ * @returns the enum key, or null
+ */
+function getEnumKeyByEnumValue<T extends Record<string, any>>(myEnum: T, enumValue: any): keyof T | null {
+    const result = Object.keys(myEnum).find(x => myEnum[x] === enumValue);
+    return result ? result as keyof T : null;
+}
+
+function requireNonFalsey(value: any, name: string): typeof value {
+    if (value == null) {
+        throw new Error(`${name} cannot be null or undefined`);
+    }
+    return value
 }
