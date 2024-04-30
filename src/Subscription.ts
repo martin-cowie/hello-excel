@@ -1,3 +1,6 @@
+import { TopicSpecification } from "diffusion";
+import {Translations} from "./Translations.js";
+
 export class Subscription {
     constructor(
         readonly topicPath: string,
@@ -43,10 +46,14 @@ export class Subscription {
         })
     }
 
-    public onValueHandler(topic: string, specification: any, newValue: any, oldValue: any): void {
-        const topicValue = JSON.stringify(newValue.get(), null, 2);
-        const self = this;
+    public onValueHandler(topic: string, specification: TopicSpecification, newValue: diffusion.JSON, oldValue: diffusion.JSON): void {
 
+        // This is the translation function
+        const cellValueMatrix = Translations.get("To row")!.translate(newValue);
+
+        // TODO: assert topicValue is rectangular AND t
+        
+        const self = this;
         Excel.run(async context => {
             const binding = context.workbook.bindings.getItem(self.bindingId);
             const range = binding.getRange();
@@ -71,7 +78,7 @@ export class Subscription {
                 }
             }
 
-            range.values =[[topicValue]];
+            range.values = cellValueMatrix;
             return context.sync();
         });
     }

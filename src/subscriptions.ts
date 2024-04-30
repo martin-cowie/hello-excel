@@ -1,5 +1,7 @@
 import {TopicType, type Session} from "diffusion";
 import { Subscription } from "./Subscription.js";
+import {requireNonFalsey, getEnumKeyByEnumValue, removeElement} from "./Common.js";
+
 declare const diffusion: any; 
 
 export class Subscriptions {
@@ -232,30 +234,4 @@ export class Subscriptions {
         });
     }
     
-}
-
-function removeElement<T>(array: T[], elementToRemove: T): T[] {
-    const index = array.indexOf(elementToRemove); //TODO: consider more than identity comparison
-    if (index > -1) {
-        array.splice(index, 1);
-    }
-    return array;
-}
-
-/**
- * Maps an enum invariant to it's key
- * @param myEnum 
- * @param enumValue 
- * @returns the enum key, or null
- */
-function getEnumKeyByEnumValue<T extends Record<string, any>>(myEnum: T, enumValue: any): keyof T | null {
-    const result = Object.keys(myEnum).find(x => myEnum[x] === enumValue);
-    return result ? result as keyof T : null;
-}
-
-function requireNonFalsey(value: any, name: string): typeof value {
-    if (value == null) {
-        throw new Error(`${name} cannot be null or undefined`);
-    }
-    return value
 }
