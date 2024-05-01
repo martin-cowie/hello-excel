@@ -127,3 +127,29 @@ function clipRow<T>(row: T[], toLength: number): T[] {
         return row.concat(Array(toLength - row.length).fill(null));
     }
 }
+
+/**
+ * Check that matrix is rectangular
+ * @param matrix 
+ * @returns true if all rows are the same length, and the number of rows is positive; false otherwise.
+ */
+export function isRectangular<T>(matrix: T[][]): boolean {
+
+    if (!Array.isArray(matrix) || matrix.length < 1) {
+        return false;
+    }
+
+    const rowLength = matrix[0].length;
+    if (rowLength < 1) {
+        return false;
+    }
+
+    for(const row of matrix) {
+        if (!Array.isArray(row) || row.length != rowLength) {
+            return false;
+        }
+    }
+
+    return true;
+
+}

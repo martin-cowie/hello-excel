@@ -1,6 +1,6 @@
 import {
     clip, removeElement, getEnumKeyByEnumValue, requireNonFalsy, 
-    getLeafPaths, extractValuesByPaths
+    getLeafPaths, extractValuesByPaths, isRectangular
 } from "./Common";
 
 import { describe, expect, it } from 'vitest'; 
@@ -188,3 +188,33 @@ describe('extractValuesByPaths', () => {
     });
 
 });
+
+describe('#isRectangular', () => {
+    it('recognises rectangles', () => {
+        const matrix0 = [[1, 2], [3, 4]];
+        expect(isRectangular(matrix0)).toBe(true);
+
+        const matrix1 = [[1], [3]];
+        expect(isRectangular(matrix1)).toBe(true);
+
+        const matrix2 = [[1, 2]];
+        expect(isRectangular(matrix2)).toBe(true);
+    });
+
+    it('handles empty matrices', () => {
+        expect(isRectangular([])).toBe(false);
+
+        expect(isRectangular([[], [], [], []])).toBe(false);
+    });
+
+    it('recognises non rectangles', () => {
+        expect(isRectangular([[1], [2, 3], [4]])).toBe(false);
+    });
+
+    it('Handles non-matrix input', () => {
+        expect(isRectangular(false as unknown as number[][])).toBe(false);
+
+        expect(isRectangular([false] as unknown as number[][])).toBe(false);
+    })
+});
+

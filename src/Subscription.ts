@@ -1,6 +1,6 @@
 import { TopicSpecification } from "diffusion";
 import {Translations} from "./Translations.js";
-import {clip} from "./Common.js"
+import {clip, isRectangular} from "./Common.js"
 
 export class Subscription {
     constructor(
@@ -52,8 +52,10 @@ export class Subscription {
         // This is the translation function
         const cellValueMatrix = Translations.get("To row")!.translate(newValue);
 
-        // TODO: assert topicValue is rectangular
-        
+        if (!isRectangular(cellValueMatrix)) {
+            console.debug('translation output is not rectangular!');
+            //Todo: throw an event
+        }
         
         const self = this;
         Excel.run(async context => {
