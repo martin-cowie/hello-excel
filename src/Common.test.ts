@@ -5,6 +5,10 @@ import {
 
 import { describe, expect, it } from 'vitest'; 
 
+/**
+ * Unit tests for Common.
+ */
+
 describe('#clip', () => {
 
     it ('handles illegal rows value', () => {
