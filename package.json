@@ -8,20 +8,25 @@
     "start": "office-addin-debugging start manifest-localhost.xml",
     "start:desktop": "office-addin-debugging start manifest-localhost.xml desktop",
     "start:web": "office-addin-debugging start manifest-localhost.xml web",
-    "stop": "office-addin-debugging stop manifest-localhost.xml"
+    "stop": "office-addin-debugging stop manifest-localhost.xml",
+    "test": "vitest --coverage"
   },
   "author": "DiffusionData",
   "dependencies": {
     "diffusion": "~6.10.3"
   },
   "devDependencies": {
+    "@types/office-js": "^1.0.256",
+    "@types/office-runtime": "^1.0.23",
+    "@vitest/coverage-v8": "^1.5.3",
     "office-addin-cli": "^1.5.5",
     "office-addin-debugging": "^5.0.9",
     "office-addin-dev-certs": "^1.11.4",
     "office-addin-lint": "^2.2.5",
     "office-addin-manifest": "^1.12.4",
+    "ts-node": "^10.9.2",
+    "tsc": "^2.0.4",
     "typescript": "^5.4.4",
-    "@types/office-js": "^1.0.256",
-    "@types/office-runtime": "^1.0.23"
+    "vitest": "^1.5.3"
   }
 }

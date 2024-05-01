@@ -1,6 +1,6 @@
 import {TopicType, type Session} from "diffusion";
 import { Subscription } from "./Subscription.js";
-import {requireNonFalsey, getEnumKeyByEnumValue, removeElement} from "./Common.js";
+import {requireNonFalsy, getEnumKeyByEnumValue, removeElement} from "./Common.js";
 
 declare const diffusion: any; 
 
@@ -15,11 +15,11 @@ export class Subscriptions {
         private subscriptions: Array<Subscription>,
         private nextSubscriptionId: number
     ) {
-        requireNonFalsey(session, "session");
-        requireNonFalsey(tableElem, "tableElem");
-        requireNonFalsey(pathInput, "pathInput");
-        requireNonFalsey(typeInput, "typeInput");
-        requireNonFalsey(translationFunctionMenu, "translationFunctionMenu");
+        requireNonFalsy(session, "session");
+        requireNonFalsy(tableElem, "tableElem");
+        requireNonFalsy(pathInput, "pathInput");
+        requireNonFalsy(typeInput, "typeInput");
+        requireNonFalsy(translationFunctionMenu, "translationFunctionMenu");
 
         this.subscriptions.forEach(subscription => {
             const row = this.addSubscriptionUIRow(subscription);

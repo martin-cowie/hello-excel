@@ -1,5 +1,6 @@
 import { TopicSpecification } from "diffusion";
 import {Translations} from "./Translations.js";
+import {clip} from "./Common.js"
 
 export class Subscription {
     constructor(
@@ -51,13 +52,14 @@ export class Subscription {
         // This is the translation function
         const cellValueMatrix = Translations.get("To row")!.translate(newValue);
 
-        // TODO: assert topicValue is rectangular AND t
+        // TODO: assert topicValue is rectangular
+        
         
         const self = this;
         Excel.run(async context => {
             const binding = context.workbook.bindings.getItem(self.bindingId);
             const range = binding.getRange();
-            range.load(["address", "cellCount", "values"]);
+            range.load(["address", "cellCount", "values", "columnCount", "rowCount"]);
 
             try {
                 await context.sync();
@@ -78,9 +80,11 @@ export class Subscription {
                 }
             }
 
-            range.values = cellValueMatrix;
+            range.values = clip(cellValueMatrix, range.rowCount, range.columnCount);
             return context.sync();
         });
     }
+
+
 
 }
