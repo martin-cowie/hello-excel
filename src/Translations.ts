@@ -14,7 +14,7 @@ class ToJSONTranslation implements Translation<diffusion.JSON> {
     }
 }
 
-class RowTranslation implements Translation<diffusion.JSON> {
+class ColumnTranslation implements Translation<diffusion.JSON> {
     public translate(input: diffusion.JSON): any[][] {
         // Get the property names
         const value = input.get();
@@ -32,8 +32,25 @@ class RowTranslation implements Translation<diffusion.JSON> {
     }
 }
 
+class RowTranslation implements Translation<diffusion.JSON> {
+    public translate(input: diffusion.JSON): any[][] {
+        // Get the property names
+        const value = input.get();
+        const leafPaths = getLeafPaths(value);
+
+        // Get the property for each name
+        const valueMap = extractValuesByPaths(value, leafPaths);
+
+        // Arrange two rows: property names, and property values
+        let result: any[][] = [leafPaths, leafPaths.map(p => valueMap.get(p))];
+
+        return result;
+    }
+}
+
 export const Translations: Map<string, Translation<diffusion.JSON>> = new Map([
     ["To JSON", new ToJSONTranslation()],
+    ["To column", new ColumnTranslation()],
     ["To row", new RowTranslation()]
 ]);
     
