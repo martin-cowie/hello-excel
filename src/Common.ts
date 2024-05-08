@@ -64,6 +64,26 @@ export function getLeafPaths(data: JsonValue, prefix: string = ''): string[] {
     return paths;
 }
 
+export function findAllLeafPointers(obj: any) {
+    const pointers: string[] = [];
+
+    function traverse(current: any, path: string) {
+        if (current !== null && typeof current === 'object' && !Array.isArray(current)) {
+            // Traverse through each property if it's an object (not including arrays for simplicity)
+            for (const key in current) {
+                traverse(current[key], `${path}/${key}`);
+            }
+        } else {
+            // It's a leaf node, so add the path to the pointers array
+            pointers.push(path);
+        }
+    }
+
+    traverse(obj, ""); // Start with an empty path for the root
+    return pointers;
+}
+
+
 //FIXME: as above, should be either JSoNpath no JSoNPointer
 export function extractValuesByPaths(data: JsonValue, paths: string[]): Map<string, JsonValue> {
     const resultMap = new Map<string, JsonValue>();

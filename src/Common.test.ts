@@ -1,6 +1,6 @@
 import {
     clip, removeElement, getEnumKeyByEnumValue, requireNonFalsy, 
-    getLeafPaths, extractValuesByPaths, isRectangular
+    getLeafPaths, extractValuesByPaths, isRectangular, findAllLeafPointers
 } from "./Common";
 
 import { describe, expect, it } from 'vitest'; 
@@ -138,6 +138,44 @@ describe('#getLeafPaths', () => {
 
     it('handles objects nested within arrays', () => {
         expect(getLeafPaths([{x: 1}, {y: 1}])).toEqual(['[0].x', '[1].y']);
+    });
+
+});
+
+describe('#findAllLeafPointers', () => {
+
+    it('handles scalar/primitive values', () => {
+        expect(findAllLeafPointers(123)).toEqual(['']);
+        expect(findAllLeafPointers(123.45)).toEqual(['']);
+        expect(findAllLeafPointers('hello world')).toEqual(['']);
+        expect(findAllLeafPointers(true)).toEqual(['']);
+    });
+
+    it ('handles nested object values', () => {
+        expect(findAllLeafPointers({
+            "name": "EUR:GBP",
+            "tm": 1600696475962,
+            "bid": {
+              "big": 0.91,
+              "points": 681
+            },
+            "offer": {
+              "big": 0.91,
+              "points": 689
+            },
+            "high": 0.91366,
+            "low": 0.91977,
+            "open": 0.91597
+          })).toEqual([
+            "/name",
+            "/tm",
+            "/bid/big",
+            "/bid/points",
+            "/offer/big",
+            "/offer/points",
+            "/high",
+            "/low",
+            "/open",]);
     });
 
 });
